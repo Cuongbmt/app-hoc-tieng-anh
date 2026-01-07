@@ -1,0 +1,7 @@
+{
+  "name": "Copy of LingoGem AI - All-in-One English Learning",
+  "description": "A comprehensive English learning platform powered by Gemini AI, featuring real-time speaking practice, AI dictation, contextual reading, and smart vocabulary management.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
