@@ -33,13 +33,11 @@ const DictationRoom: React.FC = () => {
     if (!audioBase64 || isPlaying) return;
     setIsPlaying(true);
     try {
-      if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      const decoded = decodePCM(audioBase64);
-      const buffer = await audioCtxRef.current.decodeAudioData(decoded.buffer.slice(0)); // Note: Standard TTS might return mp3 or similar depending on implementation, but our spec says Gemini returns PCM. 
-      // Actually, standard Gemini API for text-to-speech with Modality.AUDIO returns raw PCM.
-      // So we use our custom decodeAudioData logic from geminiService
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      }
       
-      // Let's use the robust decoder we wrote in geminiService
+      const decoded = decodePCM(audioBase64);
       const { decodeAudioData: customDecode } = await import('../services/geminiService');
       const audioBuffer = await customDecode(decoded, audioCtxRef.current, 24000, 1);
       
@@ -63,7 +61,11 @@ const DictationRoom: React.FC = () => {
 
   useEffect(() => {
     loadNewTask();
-    return () => audioCtxRef.current?.close();
+    return () => {
+      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+        audioCtxRef.current.close().catch(() => {});
+      }
+    };
   }, [level]);
 
   return (

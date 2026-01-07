@@ -61,6 +61,7 @@ export interface VocabularyWord {
   phonetic: string;
   meaning: string;
   example: string;
+  exampleTranslation: string; // Bản dịch của câu ví dụ
   level: string;
   mastery: number; 
   nextReview: number; 
@@ -115,7 +116,6 @@ export interface ReadingContent {
   keywords: { word: string; phonetic: string; meaning: string; example: string }[];
 }
 
-// Fix: Adding missing WritingEvaluation interface used in SkillsLab view
 export interface WritingEvaluation {
   score: number;
   feedback: string;
@@ -127,7 +127,6 @@ export interface WritingEvaluation {
   styleSuggestions: string[];
 }
 
-// Fix: Adding missing VocabularyFolder interface used in VocabularyRoom view
 export interface VocabularyFolder {
   id: string;
   name: string;

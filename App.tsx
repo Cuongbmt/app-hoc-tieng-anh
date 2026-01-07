@@ -18,53 +18,77 @@ import ListeningHub from './views/ListeningHub';
 import PassiveOverlay from './components/PassiveOverlay';
 import { VocabularyWord } from './types';
 
-const SidebarItem = ({ to, icon, label, active }: { to: string, icon: string, label: string, active: boolean }) => (
-  <Link to={to} title={label} className={`flex items-center justify-center md:justify-start gap-3 w-12 h-12 md:w-full md:px-4 md:py-3 rounded-2xl transition-all duration-200 ${active ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}>
+const SidebarItem = ({ to, icon, label, active, onClick }: { to: string, icon: string, label: string, active: boolean, onClick?: () => void }) => (
+  <Link 
+    to={to} 
+    onClick={onClick}
+    title={label} 
+    className={`flex items-center gap-3 w-full px-4 py-3 rounded-2xl transition-all duration-200 ${active ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+  >
     <i className={`fas ${icon} w-6 text-center text-lg`}></i>
-    <span className="hidden md:inline font-bold text-sm tracking-tight">{label}</span>
+    <span className="font-bold text-sm tracking-tight">{label}</span>
   </Link>
 );
 
-const Navigation = () => {
+const Navigation = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
   const location = useLocation();
   const path = location.pathname.split('/')[1] || 'dashboard';
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-20 md:w-64 bg-[#0f1115] border-r border-white/5 p-4 md:p-6 flex flex-col gap-2 z-50">
-      <div className="flex items-center justify-center md:justify-start gap-3 mb-12 md:px-2">
-        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl">
-          <i className="fas fa-gem"></i>
+    <>
+      {/* Backdrop for mobile */}
+      <div 
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] transition-opacity duration-300 md:hidden ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={onClose}
+      />
+      
+      <aside className={`fixed left-0 top-0 h-screen bg-[#0f1115] border-r border-white/5 p-6 flex flex-col gap-2 z-[70] transition-all duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0 w-72' : '-translate-x-full md:translate-x-0 w-0 md:w-64 opacity-0 md:opacity-100'}`}>
+        
+        <div className="flex items-center gap-3 mb-10 px-2 overflow-hidden whitespace-nowrap">
+          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl flex-shrink-0">
+            <i className="fas fa-gem"></i>
+          </div>
+          <h1 className="text-xl font-black text-white tracking-tighter">Tiếng Anh Của Cường</h1>
         </div>
-        <h1 className="hidden md:block text-xl font-black text-white tracking-tighter">LingoGem AI</h1>
-      </div>
-      
-      <SidebarItem to="/" icon="fa-th-large" label="Dashboard" active={path === 'dashboard' || path === ''} />
-      <SidebarItem to="/skills" icon="fa-brain" label="AI-Powered" active={path === 'skills'} />
-      <SidebarItem to="/browser" icon="fa-globe" label="Discovery" active={path === 'browser'} />
-      <SidebarItem to="/listening" icon="fa-headphones" label="Listening" active={path === 'listening'} />
-      <SidebarItem to="/game" icon="fa-gamepad" label="Vocab Game" active={path === 'game'} />
-      <SidebarItem to="/speaking" icon="fa-microphone" label="Speaking" active={path === 'speaking'} />
-      <SidebarItem to="/vocabulary" icon="fa-book-open" label="Vocab Smart" active={path === 'vocabulary'} />
-      <SidebarItem to="/translation" icon="fa-language" label="Translate" active={path === 'translation'} />
-      <SidebarItem to="/youtube" icon="fa-play" label="YouTube" active={path === 'youtube'} />
-      <SidebarItem to="/grammar" icon="fa-book" label="Grammar" active={path === 'grammar'} />
-      
-      <div className="mt-auto hidden md:block p-4 bg-white/5 rounded-2xl border border-white/5">
-        <p className="text-[10px] text-slate-500 font-black mb-2 uppercase tracking-widest text-center">Ready to learn?</p>
-        <Link to="/exam" className="block text-center bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all">Mock Exam</Link>
-      </div>
-    </aside>
+        
+        <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar pr-2">
+          <SidebarItem to="/" icon="fa-th-large" label="Dashboard" active={path === 'dashboard' || path === ''} onClick={onClose} />
+          <SidebarItem to="/skills" icon="fa-brain" label="AI-Powered" active={path === 'skills'} onClick={onClose} />
+          <SidebarItem to="/browser" icon="fa-globe" label="Discovery" active={path === 'browser'} onClick={onClose} />
+          <SidebarItem to="/listening" icon="fa-headphones" label="Listening" active={path === 'listening'} onClick={onClose} />
+          <SidebarItem to="/game" icon="fa-gamepad" label="Vocab Game" active={path === 'game'} onClick={onClose} />
+          <SidebarItem to="/speaking" icon="fa-microphone" label="Speaking" active={path === 'speaking'} onClick={onClose} />
+          <SidebarItem to="/vocabulary" icon="fa-book-open" label="Vocab Smart" active={path === 'vocabulary'} onClick={onClose} />
+          <SidebarItem to="/translation" icon="fa-language" label="Translate" active={path === 'translation'} onClick={onClose} />
+          <SidebarItem to="/youtube" icon="fa-play" label="YouTube" active={path === 'youtube'} onClick={onClose} />
+          <SidebarItem to="/grammar" icon="fa-book" label="Grammar" active={path === 'grammar'} onClick={onClose} />
+        </nav>
+        
+        <div className="mt-auto p-4 bg-white/5 rounded-2xl border border-white/5 overflow-hidden whitespace-nowrap">
+          <p className="text-[10px] text-slate-500 font-black mb-2 uppercase tracking-widest text-center">Ready to learn?</p>
+          <Link to="/exam" onClick={onClose} className="block text-center bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all">Mock Exam</Link>
+        </div>
+      </aside>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
+      `}</style>
+    </>
   );
 };
 
 const App: React.FC = () => {
   const [passiveWords, setPassiveWords] = useState<VocabularyWord[]>([]);
   const [showPassive, setShowPassive] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
+    // Added missing exampleTranslation property to match VocabularyWord interface
     const mock: VocabularyWord[] = [
-      { id: '1', word: 'Resilient', phonetic: '/rɪˈzɪliənt/', meaning: 'Kiên cường', example: 'She is a resilient girl.', level: 'Advanced', mastery: 0, nextReview: 0 },
-      { id: '2', word: 'Ambiguous', phonetic: '/æmˈbɪɡjuəs/', meaning: 'Mơ hồ', example: 'The movie was ambiguous.', level: 'B2', mastery: 0, nextReview: 0 }
+      { id: '1', word: 'Resilient', phonetic: '/rɪˈzɪliənt/', meaning: 'Kiên cường', example: 'She is a resilient girl.', exampleTranslation: 'Cô ấy là một cô gái kiên cường.', level: 'Advanced', mastery: 0, nextReview: 0 },
+      { id: '2', word: 'Ambiguous', phonetic: '/æmˈbɪɡjuəs/', meaning: 'Mơ hồ', example: 'The movie was ambiguous.', exampleTranslation: 'Bộ phim thật mơ hồ.', level: 'B2', mastery: 0, nextReview: 0 }
     ];
     setPassiveWords(mock);
   }, []);
@@ -72,8 +96,17 @@ const App: React.FC = () => {
   return (
     <Router>
       <div className="min-h-screen bg-[#0f1115] flex text-white selection:bg-indigo-500/30">
-        <Navigation />
-        <main className="flex-1 ml-20 md:ml-64 relative">
+        <Navigation isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+        
+        {/* Mobile Toggle Button */}
+        <button 
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="fixed top-6 left-6 z-[80] md:hidden w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-white backdrop-blur-md active:scale-90 transition-all"
+        >
+          <i className={`fas ${isMobileMenuOpen ? 'fa-times' : 'fa-bars'}`}></i>
+        </button>
+
+        <main className={`flex-1 transition-all duration-300 ${isMobileMenuOpen ? 'md:ml-64' : 'ml-0 md:ml-64'} relative`}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/skills" element={<SkillsLab />} />

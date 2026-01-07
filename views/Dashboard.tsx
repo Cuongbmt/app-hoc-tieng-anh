@@ -25,13 +25,13 @@ const Dashboard: React.FC = () => {
       <div className="max-w-6xl mx-auto relative z-10">
         <header className="mb-16 text-center">
           <div className="inline-block px-4 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-indigo-400 text-xs font-black tracking-widest uppercase mb-6">
-            All-in-One English learning platform
+            Học tiếng anh hiệu quả cùng AI
           </div>
           <h1 className="text-5xl md:text-6xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-slate-400">
-            LingoGem AI
+            Tiếng Anh Của Cường
           </h1>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            Experience the future of language learning with native-level AI interactions and real-time feedback.
+            Khám phá tương lai của việc học ngôn ngữ với tương tác AI cấp độ bản ngữ và phản hồi thời gian thực.
           </p>
         </header>
 
@@ -59,9 +59,9 @@ const Dashboard: React.FC = () => {
               <div>v2.5.0-flash</div>
            </div>
            <div className="flex gap-8 font-bold">
-              <Link to="/vocabulary" className="hover:text-white transition-colors">My Progress</Link>
-              <Link to="/exam" className="hover:text-white transition-colors">Exam Center</Link>
-              <Link to="/settings" className="hover:text-white transition-colors">Settings</Link>
+              <Link to="/vocabulary" className="hover:text-white transition-colors">Tiến độ của tôi</Link>
+              <Link to="/exam" className="hover:text-white transition-colors">Trung tâm khảo thí</Link>
+              <Link to="/settings" className="hover:text-white transition-colors">Cài đặt</Link>
            </div>
         </footer>
       </div>

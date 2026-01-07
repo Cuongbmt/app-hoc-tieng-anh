@@ -46,7 +46,6 @@ const ListeningHub: React.FC = () => {
   const [showResults, setShowResults] = useState(false);
   const [completedLessons, setCompletedLessons] = useState<Set<number>>(new Set());
   
-  // Audio Playback State
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   
@@ -69,7 +68,7 @@ const ListeningHub: React.FC = () => {
       setCurrentTime(Math.min(elapsed, duration));
       if (elapsed >= duration) {
         setIsPlaying(false);
-        cancelAnimationFrame(animationFrameRef.current!);
+        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       } else {
         animationFrameRef.current = requestAnimationFrame(updateProgress);
       }
@@ -92,8 +91,11 @@ const ListeningHub: React.FC = () => {
       return;
     }
     
+    if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+      audioCtxRef.current = new AudioContext({ sampleRate: 24000 });
+    }
+
     if (!audioBufferRef.current && audioBase64) {
-      if (!audioCtxRef.current) audioCtxRef.current = new AudioContext({ sampleRate: 24000 });
       const decoded = decodePCM(audioBase64);
       audioBufferRef.current = await decodeAudioData(decoded, audioCtxRef.current, 24000, 1);
       setDuration(audioBufferRef.current.duration);
@@ -147,7 +149,9 @@ const ListeningHub: React.FC = () => {
       const audio = await textToSpeech(data.transcript);
       setAudioBase64(audio);
       
-      if (!audioCtxRef.current) audioCtxRef.current = new AudioContext({ sampleRate: 24000 });
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        audioCtxRef.current = new AudioContext({ sampleRate: 24000 });
+      }
       const decoded = decodePCM(audio);
       audioBufferRef.current = await decodeAudioData(decoded, audioCtxRef.current, 24000, 1);
       setDuration(audioBufferRef.current.duration);
@@ -156,7 +160,12 @@ const ListeningHub: React.FC = () => {
   };
 
   useEffect(() => {
-    return () => stopAudio();
+    return () => {
+      stopAudio();
+      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+        audioCtxRef.current.close().catch(() => {});
+      }
+    };
   }, []);
 
   return (
@@ -210,7 +219,6 @@ const ListeningHub: React.FC = () => {
               </div>
             ) : lessonData && (
               <div className="space-y-8">
-                 {/* PLAYER SECTION */}
                  <div className="bg-gradient-to-br from-indigo-900 via-indigo-800 to-slate-900 rounded-[40px] p-8 md:p-12 shadow-2xl relative overflow-hidden">
                     <div className="relative z-10 space-y-8">
                        <div className="flex flex-col md:flex-row items-center gap-10">
@@ -263,7 +271,6 @@ const ListeningHub: React.FC = () => {
                     </div>
                  </div>
 
-                 {/* HORIZONTAL TRANSCRIPT SECTION - MOVED BELOW AUDIO */}
                  <div className="bg-[#1a1c22] border border-white/5 p-10 rounded-[40px] shadow-lg animate-fadeIn">
                     <div className="flex justify-between items-center mb-6">
                        <h4 className="text-xs font-black text-indigo-500 uppercase tracking-widest flex items-center gap-2">
@@ -278,7 +285,6 @@ const ListeningHub: React.FC = () => {
                     </div>
                  </div>
 
-                 {/* BOTTOM GRID: QUIZ AND SUMMARY */}
                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-6">
                        <div className="bg-white/5 border border-white/10 p-10 rounded-[40px]">

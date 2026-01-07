@@ -1,5 +1,4 @@
 
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { encodePCM, decodePCM, decodeAudioData, getSystemInstruction } from '../services/geminiService';
@@ -25,8 +24,8 @@ const SpeakingRoom: React.FC = () => {
   const [isActive, setIsActive] = useState(false);
   const [transcripts, setTranscripts] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
   
-  // Configuration State
   const [level, setLevel] = useState('Intermediate');
   const [personality, setPersonality] = useState<AIPersonality>('Friendly');
   const [activeScenario, setActiveScenario] = useState<ConversationScenario>(SCENARIOS[0]);
@@ -40,25 +39,33 @@ const SpeakingRoom: React.FC = () => {
 
   const cleanup = useCallback(() => {
     if (sessionRef.current) {
-      sessionRef.current.close?.();
+      try { sessionRef.current.close?.(); } catch (e) {}
       sessionRef.current = null;
     }
-    inputAudioCtxRef.current?.close();
-    outputAudioCtxRef.current?.close();
-    sourcesRef.current.forEach(s => s.stop());
+    
+    if (inputAudioCtxRef.current && inputAudioCtxRef.current.state !== 'closed') {
+      inputAudioCtxRef.current.close().catch(() => {});
+    }
+    if (outputAudioCtxRef.current && outputAudioCtxRef.current.state !== 'closed') {
+      outputAudioCtxRef.current.close().catch(() => {});
+    }
+    
+    sourcesRef.current.forEach(s => { try { s.stop(); } catch(e) {} });
     sourcesRef.current.clear();
     nextStartTimeRef.current = 0;
     setIsActive(false);
+    setIsConnecting(false);
   }, []);
 
   const startSession = async () => {
     try {
       setError(null);
-      // Initialize GoogleGenAI with process.env.API_KEY directly as per guidelines
+      setIsConnecting(true);
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
-      inputAudioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-      outputAudioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      inputAudioCtxRef.current = new AudioContextClass({ sampleRate: 16000 });
+      outputAudioCtxRef.current = new AudioContextClass({ sampleRate: 24000 });
       
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
@@ -66,7 +73,7 @@ const SpeakingRoom: React.FC = () => {
         personality, 
         level, 
         activeScenario.id === 'custom' ? customScenario : activeScenario.title,
-        ['resilient', 'inevitably', 'paradigm'] // Mock current vocab list
+        ['resilient', 'inevitably', 'paradigm']
       );
 
       const sessionPromise = ai.live.connect({
@@ -74,8 +81,10 @@ const SpeakingRoom: React.FC = () => {
         callbacks: {
           onopen: () => {
             setIsActive(true);
-            const source = inputAudioCtxRef.current!.createMediaStreamSource(stream);
-            const scriptProcessor = inputAudioCtxRef.current!.createScriptProcessor(4096, 1, 1);
+            setIsConnecting(false);
+            if (!inputAudioCtxRef.current) return;
+            const source = inputAudioCtxRef.current.createMediaStreamSource(stream);
+            const scriptProcessor = inputAudioCtxRef.current.createScriptProcessor(4096, 1, 1);
             
             scriptProcessor.onaudioprocess = (e) => {
               const inputData = e.inputBuffer.getChannelData(0);
@@ -88,18 +97,19 @@ const SpeakingRoom: React.FC = () => {
                 mimeType: 'audio/pcm;rate=16000',
               };
               
-              // Prevent race condition by solely relying on sessionPromise resolves
               sessionPromise.then(session => {
-                session.sendRealtimeInput({ media: pcmBlob });
-              });
+                if (session) {
+                  try { session.sendRealtimeInput({ media: pcmBlob }); } catch (err) {}
+                }
+              }).catch(() => {});
             };
             
             source.connect(scriptProcessor);
-            scriptProcessor.connect(inputAudioCtxRef.current!.destination);
+            scriptProcessor.connect(inputAudioCtxRef.current.destination);
           },
           onmessage: async (message) => {
             const audioData = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-            if (audioData && outputAudioCtxRef.current) {
+            if (audioData && outputAudioCtxRef.current && outputAudioCtxRef.current.state !== 'closed') {
               nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputAudioCtxRef.current.currentTime);
               const buffer = await decodeAudioData(decodePCM(audioData), outputAudioCtxRef.current, 24000, 1);
               const source = outputAudioCtxRef.current.createBufferSource();
@@ -112,7 +122,7 @@ const SpeakingRoom: React.FC = () => {
             }
             
             if (message.serverContent?.interrupted) {
-              sourcesRef.current.forEach(s => s.stop());
+              sourcesRef.current.forEach(s => { try { s.stop(); } catch(e) {} });
               sourcesRef.current.clear();
               nextStartTimeRef.current = 0;
             }
@@ -125,8 +135,8 @@ const SpeakingRoom: React.FC = () => {
             }
           },
           onerror: (e) => {
-            console.error(e);
-            setError("Connection error. Check API Key and Mic permissions.");
+            console.error('Session error:', e);
+            setError("Lỗi kết nối AI (Network/RPC Error). Vui lòng thử lại sau vài giây.");
             cleanup();
           },
           onclose: () => cleanup()
@@ -141,9 +151,9 @@ const SpeakingRoom: React.FC = () => {
       });
 
       sessionRef.current = await sessionPromise;
-    } catch (err) {
-      console.error(err);
-      setError("Failed to start session.");
+    } catch (err: any) {
+      console.error('Start session failed:', err);
+      setError(`Không thể bắt đầu: ${err.message?.includes('xhr') ? 'Lỗi mạng (Network Error)' : 'Đã có lỗi xảy ra'}.`);
       cleanup();
     }
   };
@@ -154,7 +164,6 @@ const SpeakingRoom: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto h-full grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Configuration Sidebar */}
       {!isActive && (
         <aside className="lg:col-span-1 space-y-6 animate-fadeIn">
           <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
@@ -216,14 +225,13 @@ const SpeakingRoom: React.FC = () => {
         </aside>
       )}
 
-      {/* Main Conversation Window */}
       <div className={`${isActive ? 'lg:col-span-3' : 'lg:col-span-2'} flex flex-col gap-6`}>
         <div className="bg-white rounded-[40px] p-8 md:p-12 border border-slate-100 shadow-xl flex-1 flex flex-col items-center justify-center relative overflow-hidden min-h-[500px]">
           <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
           
           <div className={`w-32 h-32 rounded-full flex items-center justify-center transition-all duration-500 mb-8 ${isActive ? 'bg-indigo-600 scale-110 shadow-2xl shadow-indigo-200' : 'bg-slate-100'}`}>
             <i className={`fas ${personality === 'Strict' ? 'fa-user-graduate' : personality === 'Rude' ? 'fa-face-angry' : 'fa-microphone'} text-4xl ${isActive ? 'text-white' : 'text-slate-400'}`}></i>
-            {isActive && (
+            {(isActive || isConnecting) && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="w-48 h-48 border-4 border-indigo-400/20 rounded-full animate-ping"></div>
                 <div className="w-64 h-64 border-2 border-indigo-400/10 rounded-full animate-ping animation-delay-500"></div>
@@ -232,28 +240,31 @@ const SpeakingRoom: React.FC = () => {
           </div>
 
           <h2 className="text-3xl font-black text-slate-800 mb-4 text-center">
-            {isActive ? `${personality} AI is Speaking...` : activeScenario.title}
+            {isConnecting ? 'Đang kết nối AI...' : isActive ? `${personality} AI is Speaking...` : activeScenario.title}
           </h2>
           <p className="text-slate-500 text-center max-w-sm mb-12">
             {isActive ? `Scenario: ${activeScenario.id === 'custom' ? customScenario : activeScenario.title}` : activeScenario.description}
           </p>
 
           {error && (
-              <div className="bg-rose-50 text-rose-600 px-6 py-3 rounded-2xl mb-8 font-bold text-sm border border-rose-100">
+              <div className="bg-rose-50 text-rose-600 px-6 py-3 rounded-2xl mb-8 font-bold text-sm border border-rose-100 text-center max-w-md">
                   <i className="fas fa-exclamation-circle mr-2"></i> {error}
+                  <div className="mt-2">
+                    <button onClick={startSession} className="text-indigo-600 underline hover:text-indigo-800">Thử lại ngay</button>
+                  </div>
               </div>
           )}
 
           <div className="flex gap-4">
              <button
                onClick={isActive ? cleanup : startSession}
-               className={`px-12 py-5 rounded-3xl font-black text-xl transition-all shadow-xl active:scale-95 ${isActive ? 'bg-rose-500 text-white hover:bg-rose-600 shadow-rose-100' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'}`}
+               disabled={isConnecting}
+               className={`px-12 py-5 rounded-3xl font-black text-xl transition-all shadow-xl active:scale-95 disabled:opacity-50 ${isActive ? 'bg-rose-500 text-white hover:bg-rose-600 shadow-rose-100' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'}`}
              >
-               {isActive ? 'End Conversation' : 'Start Talking'}
+               {isActive ? 'End Conversation' : isConnecting ? 'Connecting...' : 'Start Talking'}
              </button>
           </div>
 
-          {/* Transcript overlay when active */}
           {isActive && (
             <div className="mt-12 w-full max-w-2xl bg-slate-50/80 backdrop-blur-md rounded-3xl p-6 h-48 overflow-y-auto border border-slate-100 scroll-smooth">
                 <div className="flex justify-between items-center mb-4 sticky top-0 bg-slate-50/80 pb-2 border-b border-slate-100">
@@ -277,7 +288,7 @@ const SpeakingRoom: React.FC = () => {
           )}
         </div>
         
-        {!isActive && (
+        {!isActive && !isConnecting && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100 flex items-start gap-4">
                   <div className="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center flex-shrink-0"><i className="fas fa-brain"></i></div>
