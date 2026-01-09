@@ -53,21 +53,21 @@ const Navigation = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void 
         </div>
         
         <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar pr-2">
-          <SidebarItem to="/" icon="fa-th-large" label="Dashboard" active={path === 'dashboard' || path === ''} onClick={onClose} />
-          <SidebarItem to="/skills" icon="fa-brain" label="AI-Powered" active={path === 'skills'} onClick={onClose} />
-          <SidebarItem to="/browser" icon="fa-globe" label="Discovery" active={path === 'browser'} onClick={onClose} />
-          <SidebarItem to="/listening" icon="fa-headphones" label="Listening" active={path === 'listening'} onClick={onClose} />
-          <SidebarItem to="/game" icon="fa-gamepad" label="Vocab Game" active={path === 'game'} onClick={onClose} />
-          <SidebarItem to="/speaking" icon="fa-microphone" label="Speaking" active={path === 'speaking'} onClick={onClose} />
-          <SidebarItem to="/vocabulary" icon="fa-book-open" label="Vocab Smart" active={path === 'vocabulary'} onClick={onClose} />
-          <SidebarItem to="/translation" icon="fa-language" label="Translate" active={path === 'translation'} onClick={onClose} />
-          <SidebarItem to="/youtube" icon="fa-play" label="YouTube" active={path === 'youtube'} onClick={onClose} />
-          <SidebarItem to="/grammar" icon="fa-book" label="Grammar" active={path === 'grammar'} onClick={onClose} />
+          <SidebarItem to="/" icon="fa-th-large" label="Bảng điều khiển" active={path === 'dashboard' || path === ''} onClick={onClose} />
+          <SidebarItem to="/skills" icon="fa-brain" label="Kỹ năng AI" active={path === 'skills'} onClick={onClose} />
+          <SidebarItem to="/browser" icon="fa-globe" label="Khám phá Web" active={path === 'browser'} onClick={onClose} />
+          <SidebarItem to="/listening" icon="fa-headphones" label="Luyện nghe" active={path === 'listening'} onClick={onClose} />
+          <SidebarItem to="/game" icon="fa-gamepad" label="Game từ vựng" active={path === 'game'} onClick={onClose} />
+          <SidebarItem to="/speaking" icon="fa-microphone" label="Luyện nói AI" active={path === 'speaking'} onClick={onClose} />
+          <SidebarItem to="/vocabulary" icon="fa-book-open" label="Từ vựng thông minh" active={path === 'vocabulary'} onClick={onClose} />
+          <SidebarItem to="/translation" icon="fa-language" label="Dịch thuật AI" active={path === 'translation'} onClick={onClose} />
+          <SidebarItem to="/youtube" icon="fa-play" label="Học qua YouTube" active={path === 'youtube'} onClick={onClose} />
+          <SidebarItem to="/grammar" icon="fa-book" label="Ngữ pháp" active={path === 'grammar'} onClick={onClose} />
         </nav>
         
         <div className="mt-auto p-4 bg-white/5 rounded-2xl border border-white/5 overflow-hidden whitespace-nowrap">
-          <p className="text-[10px] text-slate-500 font-black mb-2 uppercase tracking-widest text-center">Ready to learn?</p>
-          <Link to="/exam" onClick={onClose} className="block text-center bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all">Mock Exam</Link>
+          <p className="text-[10px] text-slate-500 font-black mb-2 uppercase tracking-widest text-center">Sẵn sàng học chưa?</p>
+          <Link to="/exam" onClick={onClose} className="block text-center bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all">Thi thử & Khảo thí</Link>
         </div>
       </aside>
 
@@ -85,7 +85,7 @@ const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    // Added missing exampleTranslation property to match VocabularyWord interface
+    // Mock data for passive learning mode
     const mock: VocabularyWord[] = [
       { id: '1', word: 'Resilient', phonetic: '/rɪˈzɪliənt/', meaning: 'Kiên cường', example: 'She is a resilient girl.', exampleTranslation: 'Cô ấy là một cô gái kiên cường.', level: 'Advanced', mastery: 0, nextReview: 0 },
       { id: '2', word: 'Ambiguous', phonetic: '/æmˈbɪɡjuəs/', meaning: 'Mơ hồ', example: 'The movie was ambiguous.', exampleTranslation: 'Bộ phim thật mơ hồ.', level: 'B2', mastery: 0, nextReview: 0 }

@@ -61,7 +61,8 @@ export interface VocabularyWord {
   phonetic: string;
   meaning: string;
   example: string;
-  exampleTranslation: string; // Bản dịch của câu ví dụ
+  examplePhonetic?: string; // Phiên âm cho câu ví dụ
+  exampleTranslation: string; 
   level: string;
   mastery: number; 
   nextReview: number; 

@@ -5,7 +5,7 @@ import { VocabularyWord } from '../types';
 import { DAILY_LIFE_WORDS } from '../data/vocabularyData';
 
 const PREDEFINED_TOPICS = [
-  { name: 'Daily Life & Routines', icon: 'fa-home', targetCount: 70, known: 0, level: 'Basic' },
+  { name: 'Daily Life & Routines', icon: 'fa-home', targetCount: 71, known: 0, level: 'Basic' },
   { name: 'Hobbies & Leisure Activities', icon: 'fa-palette', targetCount: 69, known: 0, level: 'Basic' },
   { name: 'Health & Illness', icon: 'fa-face-frown-slight', targetCount: 69, known: 0, level: 'Intermediate' },
   { name: 'Food & Cooking', icon: 'fa-utensils', targetCount: 79, known: 0, level: 'Basic' },
@@ -81,13 +81,16 @@ const WordFlashcard = ({ word, onFinished, audioCtx }: { word: VocabularyWord, o
         {/* MẶT SAU */}
         <div className="absolute inset-0 bg-[#1e1b4b] rounded-[40px] shadow-2xl flex flex-col items-center justify-start p-8 rotate-y-180 backface-hidden text-center text-white overflow-hidden">
           <div className="mt-4 mb-2 text-indigo-300 text-[10px] font-black uppercase tracking-widest">Nghĩa tiếng Việt</div>
-          <h4 className="text-4xl font-black mb-6">{word.meaning}</h4>
+          <h4 className="text-3xl font-black mb-4">{word.meaning}</h4>
           
-          <div className="w-full h-px bg-white/10 mb-8"></div>
+          <div className="w-full h-px bg-white/10 mb-6"></div>
           
-          <div className="mb-2 text-indigo-300 text-[10px] font-black uppercase tracking-widest">Ví dụ & Dịch nghĩa</div>
-          <div className="bg-white/5 rounded-3xl p-6 w-full mb-8 border border-white/5">
-            <p className="text-indigo-100 text-lg font-bold mb-3 leading-relaxed">"{word.example}"</p>
+          <div className="mb-2 text-indigo-300 text-[10px] font-black uppercase tracking-widest">Ví dụ & Phiên âm</div>
+          <div className="bg-white/5 rounded-3xl p-6 w-full mb-6 border border-white/5">
+            <p className="text-indigo-100 text-lg font-bold mb-2 leading-relaxed">"{word.example}"</p>
+            {word.examplePhonetic && (
+                <p className="text-indigo-400 font-mono text-xs mb-3 italic tracking-wide">{word.examplePhonetic}</p>
+            )}
             <p className="text-indigo-300/80 text-sm italic font-medium">({word.exampleTranslation})</p>
           </div>
           
@@ -222,7 +225,7 @@ const VocabularyRoom: React.FC = () => {
     setSelectedFolder(folder);
     setView('wordList');
     setMasteredCount(folder.known || 0);
-    await fetchWordsToTarget(folder.name, folder.level || 'Intermediate', folder.targetCount || 70);
+    await fetchWordsToTarget(folder.name, folder.level || 'Intermediate', folder.targetCount || 71);
   };
 
   const playAudio = async (word: string) => {
@@ -277,11 +280,11 @@ const VocabularyRoom: React.FC = () => {
 
   const handleAiGenerate = async () => {
     if (!aiInput) return;
-    const folder = { name: aiInput, icon: 'fa-magic', targetCount: 69, known: 0, level: 'Intermediate' };
+    const folder = { name: aiInput, icon: 'fa-magic', targetCount: 71, known: 0, level: 'Intermediate' };
     setFolders([folder, ...folders]);
     setSelectedFolder(folder);
     setView('wordList');
-    await fetchWordsToTarget(aiInput, 'Intermediate', 69);
+    await fetchWordsToTarget(aiInput, 'Intermediate', 71);
   };
 
   return (
@@ -407,7 +410,7 @@ const VocabularyRoom: React.FC = () => {
                  <i className="fas fa-times"></i> Dừng học
               </button>
               <div className="text-xs font-black text-indigo-400 uppercase tracking-widest bg-indigo-400/10 px-3 py-1 rounded-full">
-                 Đã thuộc: {masteredCount} / {selectedFolder?.targetCount || 70}
+                 Đã thuộc: {masteredCount} / {selectedFolder?.targetCount || 71}
               </div>
            </header>
 
@@ -420,10 +423,10 @@ const VocabularyRoom: React.FC = () => {
              <div className="mt-auto pt-10">
                 <div className="flex justify-between text-[10px] font-black text-slate-500 mb-3 uppercase tracking-widest">
                     <span>TIẾN ĐỘ CHỦ ĐỀ</span>
-                    <span>{Math.round((masteredCount / (selectedFolder?.targetCount || 70)) * 100)}%</span>
+                    <span>{Math.round((masteredCount / (selectedFolder?.targetCount || 71)) * 100)}%</span>
                 </div>
                 <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${(masteredCount / (selectedFolder?.targetCount || 70)) * 100}%` }}></div>
+                    <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${(masteredCount / (selectedFolder?.targetCount || 71)) * 100}%` }}></div>
                 </div>
              </div>
            </div>
@@ -450,7 +453,7 @@ const VocabularyRoom: React.FC = () => {
            <div className="w-full max-w-sm space-y-4">
               <input type="text" value={aiInput} onChange={e => setAiInput(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white text-lg outline-none focus:border-indigo-500 text-center" placeholder="Ví dụ: Tech, IELTS, Job Interview..." />
               <button onClick={() => handleAiGenerate()} disabled={loading || !aiInput} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-indigo-700 disabled:opacity-50 transition-all">
-                 {loading ? 'AI đang thu thập đủ 69 từ...' : 'Tạo danh sách học'}
+                 {loading ? 'AI đang thu thập đủ từ...' : 'Tạo danh sách học'}
               </button>
               <button onClick={() => setView('folders')} className="w-full text-slate-500 font-bold">Quay lại</button>
            </div>
