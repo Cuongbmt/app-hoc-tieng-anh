@@ -5,19 +5,19 @@ import { encodePCM, decodePCM, decodeAudioData, getSystemInstruction } from '../
 import { AIPersonality, ConversationScenario } from '../types';
 
 const SCENARIOS: ConversationScenario[] = [
-  { id: 'casual', title: 'Casual Chat', description: 'Talk about anything on your mind.', icon: 'fa-comments', initialMessage: 'Hey there! How is your day going?' },
-  { id: 'interview', title: 'Job Interview', description: 'Practice professional questions.', icon: 'fa-user-tie', initialMessage: 'Welcome to our company. Can you tell me about yourself?' },
-  { id: 'hotel', title: 'Hotel Booking', description: 'Reserve a room for your trip.', icon: 'fa-hotel', initialMessage: 'Grand Plaza Hotel, how can I help you today?' },
-  { id: 'coffee', title: 'At the Cafe', description: 'Order your favorite drink.', icon: 'fa-coffee', initialMessage: 'Hi! What can I get for you today?' },
-  { id: 'custom', title: 'Custom Topic', description: 'Define your own situation.', icon: 'fa-magic', initialMessage: 'Tell me where we are and what we should talk about!' }
+  { id: 'casual', title: 'Trò chuyện tự do', description: 'Nói về bất cứ điều gì bạn đang nghĩ.', icon: 'fa-comments', initialMessage: 'Chào bạn! Ngày hôm nay của bạn thế nào?' },
+  { id: 'interview', title: 'Phỏng vấn xin việc', description: 'Luyện tập các câu hỏi chuyên nghiệp.', icon: 'fa-user-tie', initialMessage: 'Chào mừng bạn đến với công ty. Bạn có thể giới thiệu về bản thân không?' },
+  { id: 'hotel', title: 'Đặt phòng khách sạn', description: 'Luyện tập đặt phòng cho chuyến đi.', icon: 'fa-hotel', initialMessage: 'Khách sạn Grand Plaza xin nghe, tôi có thể giúp gì cho bạn?' },
+  { id: 'coffee', title: 'Tại quán cà phê', description: 'Tập gọi đồ uống yêu thích.', icon: 'fa-coffee', initialMessage: 'Chào bạn! Bạn muốn dùng gì hôm nay?' },
+  { id: 'custom', title: 'Chủ đề tự chọn', description: 'Tự định nghĩa tình huống của bạn.', icon: 'fa-magic', initialMessage: 'Hãy cho tôi biết chúng ta đang ở đâu và nên nói về điều gì!' }
 ];
 
 const PERSONALITIES: { id: AIPersonality; icon: string; label: string }[] = [
-  { id: 'Friendly', icon: 'fa-smile', label: 'Friendly' },
-  { id: 'Strict', icon: 'fa-ruler', label: 'Strict' },
-  { id: 'Creative', icon: 'fa-paint-brush', label: 'Creative' },
-  { id: 'Caring', icon: 'fa-heart', label: 'Caring' },
-  { id: 'Rude', icon: 'fa-bolt', label: 'Challenge (Rude)' }
+  { id: 'Friendly', icon: 'fa-smile', label: 'Thân thiện' },
+  { id: 'Strict', icon: 'fa-ruler', label: 'Nghiêm túc' },
+  { id: 'Creative', icon: 'fa-paint-brush', label: 'Sáng tạo' },
+  { id: 'Caring', icon: 'fa-heart', label: 'Chu đáo' },
+  { id: 'Rude', icon: 'fa-bolt', label: 'Thử thách (Khó tính)' }
 ];
 
 const SpeakingRoom: React.FC = () => {
@@ -131,12 +131,12 @@ const SpeakingRoom: React.FC = () => {
                 setTranscripts(prev => [...prev.slice(-10), `AI: ${message.serverContent?.outputTranscription?.text}`]);
             }
             if (message.serverContent?.inputTranscription) {
-                setTranscripts(prev => [...prev.slice(-10), `You: ${message.serverContent?.inputTranscription?.text}`]);
+                setTranscripts(prev => [...prev.slice(-10), `Bạn: ${message.serverContent?.inputTranscription?.text}`]);
             }
           },
           onerror: (e) => {
             console.error('Session error:', e);
-            setError("Lỗi kết nối AI (Network/RPC Error). Vui lòng thử lại sau vài giây.");
+            setError("Lỗi kết nối AI. Vui lòng thử lại sau vài giây.");
             cleanup();
           },
           onclose: () => cleanup()
@@ -153,7 +153,7 @@ const SpeakingRoom: React.FC = () => {
       sessionRef.current = await sessionPromise;
     } catch (err: any) {
       console.error('Start session failed:', err);
-      setError(`Không thể bắt đầu: ${err.message?.includes('xhr') ? 'Lỗi mạng (Network Error)' : 'Đã có lỗi xảy ra'}.`);
+      setError(`Không thể bắt đầu: Lỗi mạng hoặc API Key. Hãy kiểm tra lại.`);
       cleanup();
     }
   };
@@ -163,24 +163,24 @@ const SpeakingRoom: React.FC = () => {
   }, [cleanup]);
 
   return (
-    <div className="max-w-6xl mx-auto h-full grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="max-w-6xl mx-auto h-full grid grid-cols-1 lg:grid-cols-3 gap-8 p-6">
       {!isActive && (
         <aside className="lg:col-span-1 space-y-6 animate-fadeIn">
           <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
-             <h3 className="text-xl font-black text-slate-800 mb-6">Setup Session</h3>
+             <h3 className="text-xl font-black text-slate-800 mb-6">Thiết lập hội thoại</h3>
              
              <div className="space-y-6">
                 <div>
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-3">Your Level</label>
-                  <select value={level} onChange={e => setLevel(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option>Beginner</option>
-                    <option>Intermediate</option>
-                    <option>Advanced</option>
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-3">Trình độ của bạn</label>
+                  <select value={level} onChange={e => setLevel(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700">
+                    <option value="Beginner">Cơ bản (Beginner)</option>
+                    <option value="Intermediate">Trung cấp (Intermediate)</option>
+                    <option value="Advanced">Nâng cao (Advanced)</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-3">AI Personality</label>
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-3">Tính cách AI</label>
                   <div className="grid grid-cols-1 gap-2">
                     {PERSONALITIES.map(p => (
                       <button 
@@ -196,7 +196,7 @@ const SpeakingRoom: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-3">Scenario</label>
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-3">Tình huống</label>
                   <div className="grid grid-cols-2 gap-2">
                     {SCENARIOS.map(s => (
                       <button 
@@ -214,10 +214,10 @@ const SpeakingRoom: React.FC = () => {
                 {activeScenario.id === 'custom' && (
                    <input 
                      type="text" 
-                     placeholder="e.g. Talking to a doctor..." 
+                     placeholder="Ví dụ: Đang đi khám bệnh..." 
                      value={customScenario}
                      onChange={e => setCustomScenario(e.target.value)}
-                     className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm"
+                     className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm text-slate-700"
                    />
                 )}
              </div>
@@ -240,10 +240,10 @@ const SpeakingRoom: React.FC = () => {
           </div>
 
           <h2 className="text-3xl font-black text-slate-800 mb-4 text-center">
-            {isConnecting ? 'Đang kết nối AI...' : isActive ? `${personality} AI is Speaking...` : activeScenario.title}
+            {isConnecting ? 'Đang kết nối AI...' : isActive ? `AI đang lắng nghe...` : activeScenario.title}
           </h2>
           <p className="text-slate-500 text-center max-w-sm mb-12">
-            {isActive ? `Scenario: ${activeScenario.id === 'custom' ? customScenario : activeScenario.title}` : activeScenario.description}
+            {isActive ? `Tình huống: ${activeScenario.id === 'custom' ? customScenario : activeScenario.title}` : activeScenario.description}
           </p>
 
           {error && (
@@ -261,24 +261,24 @@ const SpeakingRoom: React.FC = () => {
                disabled={isConnecting}
                className={`px-12 py-5 rounded-3xl font-black text-xl transition-all shadow-xl active:scale-95 disabled:opacity-50 ${isActive ? 'bg-rose-500 text-white hover:bg-rose-600 shadow-rose-100' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'}`}
              >
-               {isActive ? 'End Conversation' : isConnecting ? 'Connecting...' : 'Start Talking'}
+               {isActive ? 'Kết thúc hội thoại' : isConnecting ? 'Đang kết nối...' : 'Bắt đầu nói chuyện'}
              </button>
           </div>
 
           {isActive && (
             <div className="mt-12 w-full max-w-2xl bg-slate-50/80 backdrop-blur-md rounded-3xl p-6 h-48 overflow-y-auto border border-slate-100 scroll-smooth">
                 <div className="flex justify-between items-center mb-4 sticky top-0 bg-slate-50/80 pb-2 border-b border-slate-100">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Live Conversation History</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Lịch sử hội thoại</span>
                     <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded uppercase">AI Tutor: {personality}</span>
                 </div>
                 {transcripts.length === 0 ? (
-                    <p className="text-slate-400 italic text-sm text-center py-8 animate-pulse">Speak to see transcript...</p>
+                    <p className="text-slate-400 italic text-sm text-center py-8 animate-pulse">Hãy nói gì đó để xem lời thoại...</p>
                 ) : (
                     <div className="space-y-4">
                         {transcripts.map((t, i) => (
-                            <div key={i} className={`flex ${t.startsWith('You:') ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm ${t.startsWith('You:') ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white text-slate-700 shadow-sm border border-slate-100 rounded-tl-none'}`}>
-                                    {t.split(': ')[1]}
+                            <div key={i} className={`flex ${t.startsWith('Bạn:') ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm ${t.startsWith('Bạn:') ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white text-slate-700 shadow-sm border border-slate-100 rounded-tl-none'}`}>
+                                    {t.includes(': ') ? t.split(': ')[1] : t}
                                 </div>
                             </div>
                         ))}
@@ -287,25 +287,6 @@ const SpeakingRoom: React.FC = () => {
             </div>
           )}
         </div>
-        
-        {!isActive && !isConnecting && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100 flex items-start gap-4">
-                  <div className="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center flex-shrink-0"><i className="fas fa-brain"></i></div>
-                  <div>
-                    <h4 className="text-sm font-bold text-amber-900">Vocabulary Integration</h4>
-                    <p className="text-xs text-amber-700 leading-relaxed mt-1">AI will automatically bring up words from your vault to help you master them in context.</p>
-                  </div>
-              </div>
-              <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100 flex items-start gap-4">
-                  <div className="w-10 h-10 bg-indigo-500 text-white rounded-xl flex items-center justify-center flex-shrink-0"><i className="fas fa-magic"></i></div>
-                  <div>
-                    <h4 className="text-sm font-bold text-indigo-900">Custom Scenarios</h4>
-                    <p className="text-xs text-indigo-700 leading-relaxed mt-1">Don't see a situation you need? Use 'Custom' to describe any real-life encounter.</p>
-                  </div>
-              </div>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -69,20 +69,20 @@ const DictationRoom: React.FC = () => {
   }, [level]);
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto p-6">
       <header className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900">Dictation Lab</h2>
-          <p className="text-slate-500">Sharpen your ears and spelling accuracy.</p>
+          <h2 className="text-3xl font-bold text-slate-900">Phòng Chép chính tả</h2>
+          <p className="text-slate-500">Rèn luyện đôi tai và độ chính xác của từ vựng.</p>
         </div>
         <select 
           value={level} 
           onChange={(e) => setLevel(e.target.value)}
           className="bg-white border border-slate-200 rounded-xl px-4 py-2 font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
         >
-          <option>Beginner</option>
-          <option>Intermediate</option>
-          <option>Advanced</option>
+          <option value="Beginner">Cơ bản</option>
+          <option value="Intermediate">Trung cấp</option>
+          <option value="Advanced">Nâng cao</option>
         </select>
       </header>
 
@@ -90,7 +90,7 @@ const DictationRoom: React.FC = () => {
         {loading ? (
           <div className="py-20 flex flex-col items-center">
             <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-slate-400 font-medium">Generating your lesson...</p>
+            <p className="text-slate-400 font-medium">Đang chuẩn bị bài học cho bạn...</p>
           </div>
         ) : (
           <div className="space-y-8">
@@ -102,25 +102,25 @@ const DictationRoom: React.FC = () => {
               >
                 <i className={`fas ${isPlaying ? 'fa-volume-up text-3xl animate-pulse' : 'fa-play text-2xl ml-1'}`}></i>
               </button>
-              <p className="mt-4 text-sm font-bold text-indigo-600 tracking-wider uppercase">Click to Listen</p>
+              <p className="mt-4 text-sm font-bold text-indigo-600 tracking-wider uppercase">Nhấn để Nghe</p>
             </div>
 
             <div className="space-y-4">
-              <label className="block text-sm font-bold text-slate-700">Type what you hear:</label>
+              <label className="block text-sm font-bold text-slate-700">Gõ lại những gì bạn nghe được:</label>
               <textarea 
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
-                placeholder="Type the sentence here..."
-                className={`w-full h-32 p-6 rounded-2xl border-2 text-lg outline-none transition-all ${isCorrect === true ? 'border-emerald-500 bg-emerald-50' : isCorrect === false ? 'border-rose-500 bg-rose-50' : 'border-slate-100 focus:border-indigo-500 bg-slate-50'}`}
+                placeholder="Nhập câu trả lời tại đây..."
+                className={`w-full h-32 p-6 rounded-2xl border-2 text-lg outline-none transition-all ${isCorrect === true ? 'border-emerald-500 bg-emerald-50' : isCorrect === false ? 'border-rose-500 bg-rose-50' : 'border-slate-100 focus:border-indigo-500 bg-slate-50 text-slate-800'}`}
               />
               
               {isCorrect !== null && (
-                <div className={`p-4 rounded-xl flex items-start gap-3 ${isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                <div className={`p-4 rounded-xl flex items-start gap-3 animate-fadeIn ${isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
                   <i className={`fas ${isCorrect ? 'fa-check-circle' : 'fa-times-circle'} mt-1`}></i>
                   <div>
-                    <p className="font-bold">{isCorrect ? 'Excellent Work!' : 'Not quite right yet.'}</p>
-                    <p className="text-sm">Correct Answer: <strong>{task?.sentence}</strong></p>
-                    <p className="text-sm mt-1">Hint: <i>{task?.hint}</i></p>
+                    <p className="font-bold">{isCorrect ? 'Làm tốt lắm!' : 'Chưa chính xác rồi.'}</p>
+                    <p className="text-sm">Đáp án đúng: <strong>{task?.sentence}</strong></p>
+                    <p className="text-sm mt-1">Gợi ý: <i>{task?.hint}</i></p>
                   </div>
                 </div>
               )}
@@ -132,13 +132,13 @@ const DictationRoom: React.FC = () => {
                 disabled={!userInput}
                 className="flex-1 bg-slate-800 text-white font-bold py-4 rounded-2xl hover:bg-slate-900 transition-all active:scale-95 disabled:opacity-50"
               >
-                Check Answer
+                Kiểm tra kết quả
               </button>
               <button 
                 onClick={loadNewTask}
                 className="px-8 bg-indigo-50 text-indigo-600 font-bold py-4 rounded-2xl hover:bg-indigo-100 transition-all active:scale-95"
               >
-                Next Task
+                Câu tiếp theo
               </button>
             </div>
           </div>
@@ -148,19 +148,19 @@ const DictationRoom: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100">
             <h4 className="text-amber-800 font-bold mb-2 flex items-center gap-2">
-                <i className="fas fa-lightbulb"></i> Pro Tip
+                <i className="fas fa-lightbulb"></i> Mẹo nhỏ
             </h4>
             <p className="text-amber-700 text-sm leading-relaxed">
-                Listen at least 3 times before checking the answer. Try to visualize the words as you hear them.
+                Hãy nghe ít nhất 3 lần trước khi xem đáp án. Cố gắng hình dung từ vựng trong đầu khi nghe.
             </p>
         </div>
         <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100">
             <h4 className="text-indigo-800 font-bold mb-2 flex items-center gap-2">
-                <i className="fas fa-history"></i> Recent History
+                <i className="fas fa-history"></i> Lịch sử gần đây
             </h4>
             <div className="text-indigo-700 text-xs space-y-2">
-                <p>• "The quick brown fox..." - 100% Correct</p>
-                <p>• "Artificial Intelligence is..." - 85% Correct</p>
+                <p>• "The quick brown fox..." - 100% Chính xác</p>
+                <p>• "Artificial Intelligence is..." - 85% Chính xác</p>
             </div>
         </div>
       </div>

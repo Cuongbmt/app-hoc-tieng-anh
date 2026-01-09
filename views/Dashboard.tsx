@@ -36,32 +36,32 @@ const Dashboard: React.FC = () => {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
-          <GridItem to="/skills" label="AI-Powered" icon="fa-brain" iconColor="text-purple-400" />
+          <GridItem to="/skills" label="Kỹ năng AI (Skills)" icon="fa-brain" iconColor="text-purple-400" />
           <GridItem to="/translation" label="Tập dịch với AI" icon="fa-language" iconColor="text-sky-400" />
           
-          <GridItem to="/speaking" label="Smart Speaking" icon="fa-microphone" iconColor="text-emerald-400" />
-          <GridItem to="/listening" label="Luyện nghe" icon="fa-headphones" iconColor="text-indigo-400" />
+          <GridItem to="/speaking" label="Luyện nói thông minh" icon="fa-microphone" iconColor="text-emerald-400" />
+          <GridItem to="/listening" label="Luyện nghe 100 bài" icon="fa-headphones" iconColor="text-indigo-400" />
           
-          <GridItem to="/grammar" label="Ngữ pháp" icon="fa-book" iconColor="text-pink-400" />
-          <GridItem to="/youtube" label="YouTube Learning" icon="fa-play" iconColor="text-rose-400" />
+          <GridItem to="/grammar" label="Học Ngữ pháp" icon="fa-book" iconColor="text-pink-400" />
+          <GridItem to="/youtube" label="Học qua YouTube" icon="fa-play" iconColor="text-rose-400" />
           
           <GridItem to="/browser" label="Trình duyệt AI" icon="fa-globe" iconColor="text-blue-400" />
-          <GridItem to="/game" label="Game từ vựng" icon="fa-gamepad" iconColor="text-orange-400" />
+          <GridItem to="/game" label="Game ghép từ" icon="fa-gamepad" iconColor="text-orange-400" />
           
-          <GridItem to="/speaking" label="Hội thoại với AI" icon="fa-comments" iconColor="text-violet-400" />
+          <GridItem to="/speaking" label="Hội thoại thực tế" icon="fa-comments" iconColor="text-violet-400" />
           <GridItem to="/vocabulary" label="Từ vựng thông minh" icon="fa-book-open" iconColor="text-cyan-400" />
         </div>
 
         <footer className="mt-20 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-slate-500 text-sm">
            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5"><div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div> AI Server Online</div>
+              <div className="flex items-center gap-1.5"><div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div> AI Server Trực tuyến</div>
               <div className="w-px h-4 bg-white/10"></div>
-              <div>v2.5.0-flash</div>
+              <div>Phiên bản v2.5.0-flash</div>
            </div>
            <div className="flex gap-8 font-bold">
               <Link to="/vocabulary" className="hover:text-white transition-colors">Tiến độ của tôi</Link>
               <Link to="/exam" className="hover:text-white transition-colors">Trung tâm khảo thí</Link>
-              <Link to="/settings" className="hover:text-white transition-colors">Cài đặt</Link>
+              <Link to="/" className="hover:text-white transition-colors">Cài đặt</Link>
            </div>
         </footer>
       </div>
