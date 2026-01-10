@@ -1,6 +1,19 @@
 
 import { GoogleGenAI, Type, Modality, GenerateContentParameters } from "@google/genai";
-import { ReadingContent, ToeicQuestion, YouTubeVideo, ShadowingFeedback, SkillExercise, TranslationTask, VocabularyWord, AIPersonality, GrammarTopic, WebArticle, VocabGamePair, ListeningLesson } from "../types";
+import { 
+  ReadingContent, 
+  ToeicQuestion, 
+  YouTubeVideo, 
+  ShadowingFeedback, 
+  SkillExercise, 
+  TranslationTask, 
+  VocabularyWord, 
+  AIPersonality, 
+  GrammarTopic, 
+  WebArticle, 
+  VocabGamePair, 
+  ListeningLesson 
+} from "../types";
 
 export const getGenAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -145,7 +158,18 @@ export async function generateReadingContent(l: string, t: string): Promise<Read
           text: { type: Type.STRING },
           difficulty: { type: Type.STRING },
           translation: { type: Type.STRING },
-          keywords: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { word: {type:Type.STRING}, phonetic: {type:Type.STRING}, meaning: {type:Type.STRING}, example: {type:Type.STRING} } } }
+          keywords: { 
+            type: Type.ARRAY, 
+            items: { 
+              type: Type.OBJECT, 
+              properties: { 
+                word: {type:Type.STRING}, 
+                phonetic: {type:Type.STRING}, 
+                meaning: {type:Type.STRING}, 
+                example: {type:Type.STRING} 
+              } 
+            } 
+          }
         }
       }
     }
@@ -159,7 +183,13 @@ export async function generateDictationTask(l: string) {
     contents: `Generate one English sentence at level "${l}" for dictation.`,
     config: {
       responseMimeType: "application/json",
-      responseSchema: { type: Type.OBJECT, properties: { sentence: { type: Type.STRING }, hint: { type: Type.STRING } } }
+      responseSchema: { 
+        type: Type.OBJECT, 
+        properties: { 
+          sentence: { type: Type.STRING }, 
+          hint: { type: Type.STRING } 
+        } 
+      }
     }
   });
   return JSON.parse(text || '{"sentence":"","hint":""}');
@@ -176,7 +206,17 @@ export async function generateYouTubeStudyScript(t: string): Promise<YouTubeVide
         properties: {
           id: { type: Type.STRING },
           title: { type: Type.STRING },
-          transcript: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { start: {type:Type.NUMBER}, text: {type:Type.STRING}, translation: {type:Type.STRING} } } }
+          transcript: { 
+            type: Type.ARRAY, 
+            items: { 
+              type: Type.OBJECT, 
+              properties: { 
+                start: {type:Type.NUMBER}, 
+                text: {type:Type.STRING}, 
+                translation: {type:Type.STRING} 
+              } 
+            } 
+          }
         }
       }
     }
@@ -190,7 +230,23 @@ export async function evaluateShadowing(t: string, a: string): Promise<Shadowing
     contents: `Evaluate shadowing attempt.`,
     config: {
       responseMimeType: "application/json",
-      responseSchema: { type: Type.OBJECT, properties: { score: {type:Type.NUMBER}, feedback: {type:Type.STRING}, highlightedText: {type:Type.ARRAY, items: {type:Type.OBJECT, properties: {word: {type:Type.STRING}, status: {type:Type.STRING}}}} } }
+      responseSchema: { 
+        type: Type.OBJECT, 
+        properties: { 
+          score: {type:Type.NUMBER}, 
+          feedback: {type:Type.STRING}, 
+          highlightedText: { 
+            type: Type.ARRAY, 
+            items: { 
+              type: Type.OBJECT, 
+              properties: { 
+                word: {type:Type.STRING}, 
+                status: {type:Type.STRING} 
+              } 
+            } 
+          } 
+        } 
+      }
     }
   });
   return JSON.parse(text || "{}");
@@ -202,7 +258,14 @@ export async function evaluateTranslation(u: string, t: string) {
     contents: `Evaluate translation.`,
     config: {
       responseMimeType: "application/json",
-      responseSchema: { type: Type.OBJECT, properties: { score: {type:Type.NUMBER}, feedback: {type:Type.STRING}, suggestion: {type:Type.STRING} } }
+      responseSchema: { 
+        type: Type.OBJECT, 
+        properties: { 
+          score: {type:Type.NUMBER}, 
+          feedback: {type:Type.STRING}, 
+          suggestion: {type:Type.STRING} 
+        } 
+      }
     }
   });
   return JSON.parse(text || '{"score":0,"feedback":"","suggestion":""}');
@@ -214,7 +277,14 @@ export async function generateTranslationTask(l: string) {
     contents: `Generate translation task.`,
     config: {
       responseMimeType: "application/json",
-      responseSchema: { type: Type.OBJECT, properties: { vietnamese: {type:Type.STRING}, englishTarget: {type:Type.STRING}, context: {type:Type.STRING} } }
+      responseSchema: { 
+        type: Type.OBJECT, 
+        properties: { 
+          vietnamese: {type:Type.STRING}, 
+          englishTarget: {type:Type.STRING}, 
+          context: {type:Type.STRING} 
+        } 
+      }
     }
   });
   return JSON.parse(text || '{"vietnamese":"","englishTarget":"","context":""}');
@@ -226,7 +296,25 @@ export async function generateSkillExercise(s: string, l: string, t: string): Pr
     contents: `Generate ${s} exercise.`,
     config: {
       responseMimeType: "application/json",
-      responseSchema: { type: Type.OBJECT, properties: { title: {type:Type.STRING}, content: {type:Type.STRING}, questions: {type:Type.ARRAY, items: {type:Type.OBJECT, properties: {question: {type:Type.STRING}, options: {type:Type.ARRAY, items: {type:Type.STRING}}, correctAnswer: {type:Type.INTEGER}, explanation: {type:Type.STRING}}}} } }
+      responseSchema: { 
+        type: Type.OBJECT, 
+        properties: { 
+          title: {type:Type.STRING}, 
+          content: {type:Type.STRING}, 
+          questions: { 
+            type: Type.ARRAY, 
+            items: { 
+              type: Type.OBJECT, 
+              properties: { 
+                question: {type:Type.STRING}, 
+                options: {type:Type.ARRAY, items: {type:Type.STRING}}, 
+                correctAnswer: {type:Type.INTEGER}, 
+                explanation: {type:Type.STRING}
+              }
+            }
+          } 
+        } 
+      }
     }
   });
   return JSON.parse(text || "{}");
@@ -238,7 +326,28 @@ export async function evaluateAdvancedWriting(c: string) {
     contents: `Evaluate writing.`,
     config: {
       responseMimeType: "application/json",
-      responseSchema: { type: Type.OBJECT, properties: { score: {type:Type.NUMBER}, feedback: {type:Type.STRING}, grammarErrors: {type:Type.ARRAY, items: {type:Type.OBJECT, properties: {original: {type:Type.STRING}, corrected: {type:Type.STRING}, rule: {type:Type.STRING}}}}, styleSuggestions: {type:Type.ARRAY, items: {type:Type.STRING}} } }
+      responseSchema: { 
+        type: Type.OBJECT, 
+        properties: { 
+          score: {type:Type.NUMBER}, 
+          feedback: {type:Type.STRING}, 
+          grammarErrors: { 
+            type: Type.ARRAY, 
+            items: { 
+              type: Type.OBJECT, 
+              properties: { 
+                original: {type:Type.STRING}, 
+                corrected: {type:Type.STRING}, 
+                rule: {type:Type.STRING} 
+              } 
+            } 
+          }, 
+          styleSuggestions: { 
+            type: Type.ARRAY, 
+            items: {type:Type.STRING} 
+          } 
+        } 
+      }
     }
   });
   return JSON.parse(text || '{"score":0,"feedback":"","grammarErrors":[],"styleSuggestions":[]}');
@@ -248,7 +357,19 @@ export async function generateVocabGameData(topic: string, level: string): Promi
   const text = await callGemini({
     model: "gemini-3-flash-preview",
     contents: `Generate vocab game pairs.`,
-    config: { responseMimeType: "application/json", responseSchema: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { word: {type:Type.STRING}, definition: {type:Type.STRING} } } } }
+    config: { 
+      responseMimeType: "application/json", 
+      responseSchema: { 
+        type: Type.ARRAY, 
+        items: { 
+          type: Type.OBJECT, 
+          properties: { 
+            word: {type:Type.STRING}, 
+            definition: {type:Type.STRING} 
+          } 
+        } 
+      } 
+    }
   });
   return JSON.parse(text || "[]");
 }
@@ -257,7 +378,28 @@ export async function generateListeningLesson(t: string, l: string): Promise<Lis
   const text = await callGemini({
     model: "gemini-3-flash-preview",
     contents: `Generate listening lesson.`,
-    config: { responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { title: {type:Type.STRING}, transcript: {type:Type.STRING}, summary: {type:Type.STRING}, questions: {type:Type.ARRAY, items: {type:Type.OBJECT, properties: {question: {type:Type.STRING}, options: {type:Type.ARRAY, items: {type:Type.STRING}}, correctAnswer: {type:Type.INTEGER}}}} } }
+    config: { 
+      responseMimeType: "application/json", 
+      responseSchema: { 
+        type: Type.OBJECT, 
+        properties: { 
+          title: {type:Type.STRING}, 
+          transcript: {type:Type.STRING}, 
+          summary: {type:Type.STRING}, 
+          questions: { 
+            type: Type.ARRAY, 
+            items: { 
+              type: Type.OBJECT, 
+              properties: { 
+                question: {type:Type.STRING}, 
+                options: {type:Type.ARRAY, items: {type:Type.STRING}}, 
+                correctAnswer: {type:Type.INTEGER} 
+              } 
+            } 
+          } 
+        } 
+      } 
+    }
   });
   return JSON.parse(text || "{}");
 }
@@ -266,7 +408,19 @@ export async function getGrammarTheory(t: string): Promise<GrammarTopic> {
   const text = await callGemini({
     model: "gemini-3-flash-preview",
     contents: `Explain grammar.`,
-    config: { responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { title: {type:Type.STRING}, level: {type:Type.STRING}, summary: {type:Type.STRING}, content: {type:Type.STRING}, examples: {type:Type.ARRAY, items: {type:Type.STRING}} } } }
+    config: { 
+      responseMimeType: "application/json", 
+      responseSchema: { 
+        type: Type.OBJECT, 
+        properties: { 
+          title: {type:Type.STRING}, 
+          level: {type:Type.STRING}, 
+          summary: {type:Type.STRING}, 
+          content: {type:Type.STRING}, 
+          examples: {type:Type.ARRAY, items: {type:Type.STRING}} 
+        } 
+      } 
+    }
   });
   return JSON.parse(text || "{}");
 }
