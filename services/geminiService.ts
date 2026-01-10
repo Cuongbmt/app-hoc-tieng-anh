@@ -8,10 +8,11 @@ async function callGemini(params: GenerateContentParameters, retries = 3, delay 
   const ai = getGenAI();
   try {
     const response = await ai.models.generateContent(params);
-    if (!response || !response.text) {
+    const text = response.text || "";
+    if (!text) {
       throw new Error("Empty response from AI");
     }
-    return response.text;
+    return text;
   } catch (error: any) {
     const errorStr = error.toString();
     const isRateLimit = errorStr.includes('429') || errorStr.toLowerCase().includes('quota') || errorStr.toLowerCase().includes('exhausted');
@@ -20,28 +21,18 @@ async function callGemini(params: GenerateContentParameters, retries = 3, delay 
     if (retries > 0 && (isRateLimit || isNetworkError)) {
       console.warn(`Gemini API Busy/Limited. Retrying in ${delay}ms... (${retries} retries left)`);
       await new Promise(resolve => setTimeout(resolve, delay));
-      // Tăng thời gian chờ cho lần sau (Exponential backoff)
       return callGemini(params, retries - 1, delay * 2);
     }
     throw error;
   }
 }
 
-/**
- * Tạo danh sách từ vựng theo chủ đề.
- */
 export async function generateVocabularyByTopic(t: string, l: string, count: number = 15): Promise<VocabularyWord[]> {
   try {
     const text = await callGemini({
       model: "gemini-3-flash-preview",
       contents: `Generate exactly ${count} English vocabulary words for the topic "${t}" at level "${l}". 
-      For each word, provide:
-      1. The word itself.
-      2. International Phonetic Alphabet (IPA).
-      3. Vietnamese meaning.
-      4. An English example sentence.
-      5. A natural Vietnamese translation of that example sentence.
-      Return the result strictly as a JSON array of objects.`,
+      Return strictly a JSON array of objects with keys: word, phonetic, meaning, example, examplePhonetic, exampleTranslation.`,
       config: { 
         thinkingConfig: { thinkingBudget: 0 },
         responseMimeType: "application/json", 
@@ -54,6 +45,7 @@ export async function generateVocabularyByTopic(t: string, l: string, count: num
               phonetic: {type:Type.STRING}, 
               meaning: {type:Type.STRING}, 
               example: {type:Type.STRING},
+              examplePhonetic: {type:Type.STRING},
               exampleTranslation: {type:Type.STRING}
             },
             required: ["word", "phonetic", "meaning", "example", "exampleTranslation"]
@@ -281,8 +273,27 @@ export async function getGrammarTheory(t: string): Promise<GrammarTopic> {
 
 export async function searchWebArticles(q: string): Promise<WebArticle[]> {
   const ai = getGenAI();
-  const response = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: q, config: { tools: [{ googleSearch: {} }] } });
-  return [{ url: "", title: "", excerpt: "", content: response.text || "", source: "Search" }];
+  const response = await ai.models.generateContent({ 
+    model: "gemini-3-flash-preview", 
+    contents: `Find articles about: ${q}`, 
+    config: { tools: [{ googleSearch: {} }] } 
+  });
+  
+  const text = response.text || "";
+  const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+  
+  const results: WebArticle[] = groundingChunks.map((chunk: any, i: number) => ({
+    url: chunk.web?.uri || "",
+    title: chunk.web?.title || `Article ${i + 1}`,
+    excerpt: text.slice(0, 150) + "...",
+    content: text,
+    source: "Google Search"
+  }));
+
+  if (results.length === 0) {
+    return [{ url: "", title: "Search Results", excerpt: "", content: text, source: "AI Assistant" }];
+  }
+  return results;
 }
 
 export function getSystemInstruction(p: AIPersonality, l: string, s: string, v: string[]): string {
