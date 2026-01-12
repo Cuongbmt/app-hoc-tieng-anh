@@ -136,7 +136,12 @@ const SpeakingRoom: React.FC = () => {
           },
           onerror: (e) => {
             console.error('Session error:', e);
-            setError("Lỗi kết nối AI. Vui lòng thử lại sau vài giây.");
+            const errorMessage = e.message || e.error?.message || e.toString();
+            if (errorMessage.includes('exceeded quota') || errorMessage.includes('RESOURCE_EXHAUSTED')) {
+                setError("API Key quota exceeded. Your Gemini API quota has been exceeded. Please check your usage limits and billing status externally.");
+            } else {
+                setError("Lỗi kết nối AI. Vui lòng thử lại sau vài giây.");
+            }
             cleanup();
           },
           onclose: () => cleanup()
@@ -153,7 +158,12 @@ const SpeakingRoom: React.FC = () => {
       sessionRef.current = await sessionPromise;
     } catch (err: any) {
       console.error('Start session failed:', err);
-      setError(`Không thể bắt đầu: Lỗi mạng hoặc API Key. Hãy kiểm tra lại.`);
+      const errorMessage = err.message || err.toString();
+      if (errorMessage.includes('API_QUOTA_EXCEEDED') || errorMessage.includes('exceeded quota')) {
+        setError("API Key quota exceeded. Your Gemini API quota has been exceeded. Please check your usage limits and billing status externally.");
+      } else {
+        setError(`Không thể bắt đầu: Lỗi mạng hoặc API Key. Hãy kiểm tra lại.`);
+      }
       cleanup();
     }
   };

@@ -2,11 +2,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { generateVocabularyByTopic, textToSpeech, decodePCM, decodeAudioData } from '../services/geminiService';
 import { VocabularyWord } from '../types';
-import { DAILY_LIFE_WORDS } from '../data/vocabularyData';
+import { DAILY_LIFE_WORDS, HOBBIES_WORDS } from '../data/vocabularyData';
 
 const PREDEFINED_TOPICS = [
   { name: 'Daily Life & Routines', icon: 'fa-home', targetCount: 71, known: 0, level: 'Basic' },
-  { name: 'Hobbies & Leisure Activities', icon: 'fa-palette', targetCount: 69, known: 0, level: 'Basic' },
+  { name: 'Hobbies & Leisure Activities', icon: 'fa-palette', targetCount: 70, known: 0, level: 'Basic' },
   { name: 'Health & Illness', icon: 'fa-face-frown-slight', targetCount: 69, known: 0, level: 'Intermediate' },
   { name: 'Food & Cooking', icon: 'fa-utensils', targetCount: 79, known: 0, level: 'Basic' },
   { name: 'Shopping & Money', icon: 'fa-sack-dollar', targetCount: 59, known: 0, level: 'Intermediate' },
@@ -20,6 +20,7 @@ const PREDEFINED_TOPICS = [
 ];
 
 const CACHE_KEY_PREFIX = 'vocab_cache_';
+// Bộ nhớ đệm âm thanh toàn cục để truy xuất tức thì
 const globalAudioCache: Record<string, AudioBuffer> = {};
 
 const WordFlashcard = ({ word, onFinished, audioCtx }: { word: VocabularyWord, onFinished: (isMastered: boolean) => void, audioCtx: AudioContext | null }) => {
@@ -30,22 +31,36 @@ const WordFlashcard = ({ word, onFinished, audioCtx }: { word: VocabularyWord, o
     if (e) e.stopPropagation();
     if (isPlaying || !audioCtx) return;
 
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+    // Kiểm tra cache trước để phát ngay lập tức
+    if (globalAudioCache[word.word]) {
+        setIsPlaying(true);
+        const source = audioCtx.createBufferSource();
+        source.buffer = globalAudioCache[word.word];
+        source.connect(audioCtx.destination);
+        source.onended = () => setIsPlaying(false);
+        source.start();
+        return;
+    }
+
     setIsPlaying(true);
     try {
-      let buffer = globalAudioCache[word.word];
-      if (!buffer) {
-        const base64 = await textToSpeech(word.word);
-        if (!base64) throw new Error("TTS failed");
-        const decoded = decodePCM(base64);
-        buffer = await decodeAudioData(decoded, audioCtx, 24000, 1);
-        globalAudioCache[word.word] = buffer;
-      }
+      const textToRead = `${word.word}. Nghĩa là: ${word.meaning}. Ví dụ: ${word.example}`;
+      const base64 = await textToSpeech(textToRead);
+      if (!base64) throw new Error("TTS failed");
+      const decoded = decodePCM(base64);
+      const buffer = await decodeAudioData(decoded, audioCtx, 24000, 1);
+      
+      // Lưu vào cache cho lần sau
+      globalAudioCache[word.word] = buffer;
+
       const source = audioCtx.createBufferSource();
       source.buffer = buffer;
       source.connect(audioCtx.destination);
       source.onended = () => setIsPlaying(false);
       source.start();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       setIsPlaying(false);
     }
@@ -53,7 +68,19 @@ const WordFlashcard = ({ word, onFinished, audioCtx }: { word: VocabularyWord, o
 
   useEffect(() => {
     setFlipped(false);
-  }, [word]);
+    // Tự động tải âm thanh khi flashcard xuất hiện
+    if (audioCtx && !globalAudioCache[word.word]) {
+        const textToRead = `${word.word}. Nghĩa là: ${word.meaning}. Ví dụ: ${word.example}`;
+        textToSpeech(textToRead).then(base64 => {
+            if (base64) {
+                const decoded = decodePCM(base64);
+                decodeAudioData(decoded, audioCtx, 24000, 1).then(buffer => {
+                    globalAudioCache[word.word] = buffer;
+                });
+            }
+        }).catch(() => {});
+    }
+  }, [word, audioCtx]);
 
   return (
     <div className="relative w-full max-w-md mx-auto h-[550px] perspective-1000 cursor-pointer" onClick={() => setFlipped(!flipped)}>
@@ -128,8 +155,11 @@ const VocabularyRoom: React.FC = () => {
   const [trainingIndex, setTrainingIndex] = useState(0);
   const [masteredCount, setMasteredCount] = useState(0);
   const [playingWord, setPlayingWord] = useState<string | null>(null);
+  const [isPlaylistMode, setIsPlaylistMode] = useState(false);
+  const [currentPlaylistIdx, setCurrentPlaylistIdx] = useState(-1);
   
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const playlistSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
   useEffect(() => {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -139,86 +169,92 @@ const VocabularyRoom: React.FC = () => {
     };
   }, []);
 
-  const prefetchAudioForWords = async (words: VocabularyWord[]) => {
+  // Hàm tải trước âm thanh cho 5-10 từ tiếp theo
+  const prefetchAudio = async (words: VocabularyWord[]) => {
     if (!audioCtxRef.current) return;
-    const wordsToFetch = words.filter(w => !globalAudioCache[w.word]);
-    for (const word of wordsToFetch) {
-      try {
-        const base64 = await textToSpeech(word.word);
-        if (base64) {
-          const decoded = decodePCM(base64);
-          const buffer = await decodeAudioData(decoded, audioCtxRef.current, 24000, 1);
-          globalAudioCache[word.word] = buffer;
+    const ctx = audioCtxRef.current;
+    
+    // Chỉ tải trước những từ chưa có trong cache
+    const toFetch = words.filter(w => !globalAudioCache[w.word]).slice(0, 10);
+    
+    for (const wordObj of toFetch) {
+        try {
+            const textToRead = `${wordObj.word}. Nghĩa là: ${wordObj.meaning}. Ví dụ: ${wordObj.example}`;
+            const base64 = await textToSpeech(textToRead);
+            if (base64) {
+                const decoded = decodePCM(base64);
+                const buffer = await decodeAudioData(decoded, ctx, 24000, 1);
+                globalAudioCache[wordObj.word] = buffer;
+            }
+        } catch (e) {
+            console.warn(`Prefetch failed for ${wordObj.word}`);
         }
-      } catch (err) {}
     }
   };
 
-  /**
-   * Tải từ vựng theo đợt cho đến khi đủ số lượng yêu cầu.
-   */
   const fetchWordsToTarget = async (topic: string, level: string, target: number) => {
     setErrorStatus(null);
-    // ƯU TIÊN DỮ LIỆU CÓ SẴN (PRESET)
+    let words: VocabularyWord[] = [];
+
     if (topic === 'Daily Life & Routines') {
-      setFolderWords(DAILY_LIFE_WORDS);
-      prefetchAudioForWords(DAILY_LIFE_WORDS.slice(0, 10));
-      return DAILY_LIFE_WORDS;
-    }
-
-    setLoading(true);
-    setLoadingProgress(0);
-    let collected: VocabularyWord[] = [];
-    
-    // Kiểm tra cache trước
-    const key = `${CACHE_KEY_PREFIX}${topic}_${level}`.toLowerCase().replace(/\s+/g, '_');
-    const cached = localStorage.getItem(key);
-    if (cached) {
-        const words = JSON.parse(cached);
-        if (words.length >= target) {
-            setFolderWords(words);
-            setLoading(false);
-            return words;
-        }
-        collected = words;
-        setFolderWords(collected);
-    }
-
-    try {
-        while (collected.length < target) {
-            const batchSize = Math.min(15, target - collected.length);
-            const newWords = await generateVocabularyByTopic(topic, level, batchSize);
-            
-            if (newWords.length === 0) {
-              setErrorStatus("AI đang bận (Hết hạn mức). Đang thử lại...");
-              // Đợi thêm 3s nếu lỗi
-              await new Promise(resolve => setTimeout(resolve, 3000));
-              continue;
+      words = DAILY_LIFE_WORDS;
+    } else if (topic === 'Hobbies & Leisure Activities') {
+      words = HOBBIES_WORDS;
+    } else {
+        setLoading(true);
+        setLoadingProgress(0);
+        let collected: VocabularyWord[] = [];
+        
+        const key = `${CACHE_KEY_PREFIX}${topic}_${level}`.toLowerCase().replace(/\s+/g, '_');
+        const cached = localStorage.getItem(key);
+        if (cached) {
+            const cachedWords = JSON.parse(cached);
+            if (cachedWords.length >= target) {
+                words = cachedWords;
+                setLoading(false);
+            } else {
+                collected = cachedWords;
             }
-
-            setErrorStatus(null);
-            // Lọc trùng lặp
-            const uniqueNew = newWords.filter(nw => !collected.some(cw => cw.word.toLowerCase() === nw.word.toLowerCase()));
-            collected = [...collected, ...uniqueNew];
-            
-            setFolderWords(collected);
-            setLoadingProgress(Math.min(100, Math.round((collected.length / target) * 100)));
-            
-            // Cập nhật cache sau mỗi đợt
-            localStorage.setItem(key, JSON.stringify(collected));
-            
-            if (uniqueNew.length === 0) break;
-            
-            // Nghỉ 1s giữa các đợt để tránh spam API
-            await new Promise(resolve => setTimeout(resolve, 1000));
         }
-    } catch (e: any) {
-        console.error("Fetch error", e);
-        setErrorStatus("Lỗi kết nối AI. Vui lòng thử lại sau.");
+
+        if (words.length === 0) {
+            try {
+                while (collected.length < target) {
+                    const batchSize = Math.min(15, target - collected.length);
+                    const newWords = await generateVocabularyByTopic(topic, level, batchSize);
+                    
+                    if (newWords.length === 0) {
+                      setErrorStatus("AI đang bận. Đang thử lại...");
+                      await new Promise(resolve => setTimeout(resolve, 3000));
+                      continue;
+                    }
+
+                    setErrorStatus(null);
+                    const uniqueNew = newWords.filter(nw => !collected.some(cw => cw.word.toLowerCase() === nw.word.toLowerCase()));
+                    collected = [...collected, ...uniqueNew];
+                    
+                    setFolderWords(collected);
+                    setLoadingProgress(Math.min(100, Math.round((collected.length / target) * 100)));
+                    localStorage.setItem(key, JSON.stringify(collected));
+                    if (uniqueNew.length === 0) break;
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                words = collected;
+            } catch (e: any) {
+                if (e.message?.includes("API_QUOTA_EXCEEDED")) {
+                    setErrorStatus("API Quota Exceeded. Hãy kiểm tra giới hạn sử dụng Gemini API của bạn.");
+                } else {
+                    setErrorStatus("Lỗi kết nối AI khi tải từ vựng.");
+                }
+            }
+        }
     }
     
+    setFolderWords(words);
     setLoading(false);
-    return collected;
+    // Bắt đầu tải trước âm thanh ngay khi danh sách từ xuất hiện
+    prefetchAudio(words);
+    return words;
   };
 
   const selectFolder = async (folder: any) => {
@@ -228,41 +264,122 @@ const VocabularyRoom: React.FC = () => {
     await fetchWordsToTarget(folder.name, folder.level || 'Intermediate', folder.targetCount || 71);
   };
 
-  const playAudio = async (word: string) => {
+  const playWordAudio = async (wordObj: VocabularyWord) => {
     if (playingWord || !audioCtxRef.current) return;
-    let buffer = globalAudioCache[word];
-    if (buffer) {
-      setPlayingWord(word);
-      const source = audioCtxRef.current.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioCtxRef.current.destination);
-      source.onended = () => setPlayingWord(null);
-      source.start();
-      return;
+    if (audioCtxRef.current.state === 'suspended') await audioCtxRef.current.resume();
+    
+    // Kiểm tra cache (Phát tức thì)
+    if (globalAudioCache[wordObj.word]) {
+        setPlayingWord(wordObj.word);
+        const source = audioCtxRef.current.createBufferSource();
+        source.buffer = globalAudioCache[wordObj.word];
+        source.connect(audioCtxRef.current.destination);
+        source.onended = () => setPlayingWord(null);
+        source.start();
+        return;
     }
-    setPlayingWord(word);
+
+    setPlayingWord(wordObj.word);
     try {
-        const base64 = await textToSpeech(word);
+        const textToRead = `${wordObj.word}. Nghĩa là: ${wordObj.meaning}. Ví dụ: ${wordObj.example}`;
+        const base64 = await textToSpeech(textToRead);
         if (base64) {
           const decoded = decodePCM(base64);
-          const newBuffer = await decodeAudioData(decoded, audioCtxRef.current, 24000, 1);
-          globalAudioCache[word] = newBuffer;
+          const buffer = await decodeAudioData(decoded, audioCtxRef.current, 24000, 1);
+          globalAudioCache[wordObj.word] = buffer; // Lưu vào cache
+          
           const source = audioCtxRef.current.createBufferSource();
-          source.buffer = newBuffer;
+          source.buffer = buffer;
           source.connect(audioCtxRef.current.destination);
           source.onended = () => setPlayingWord(null);
           source.start();
         } else {
           setPlayingWord(null);
         }
-    } catch (e) { setPlayingWord(null); }
+    } catch (e: any) { 
+      setPlayingWord(null); 
+      if (e.message?.includes("API_QUOTA_EXCEEDED")) {
+          setErrorStatus("API Quota Exceeded. Không thể phát âm thanh.");
+      }
+    }
+  };
+
+  const stopPlaylist = () => {
+    setIsPlaylistMode(false);
+    setCurrentPlaylistIdx(-1);
+    if (playlistSourceRef.current) {
+        try { playlistSourceRef.current.stop(); } catch(e) {}
+        playlistSourceRef.current = null;
+    }
+  };
+
+  const startPlaylist = async () => {
+    if (folderWords.length === 0) return;
+    if (audioCtxRef.current?.state === 'suspended') await audioCtxRef.current.resume();
+    
+    setIsPlaylistMode(true);
+    playNextInPlaylist(0);
+  };
+
+  const playNextInPlaylist = async (index: number) => {
+    if (!isPlaylistMode || index >= folderWords.length || !audioCtxRef.current) {
+        stopPlaylist();
+        return;
+    }
+
+    setCurrentPlaylistIdx(index);
+    const wordObj = folderWords[index];
+    
+    try {
+        let buffer: AudioBuffer;
+
+        if (globalAudioCache[wordObj.word]) {
+            buffer = globalAudioCache[wordObj.word];
+        } else {
+            const textToRead = `${wordObj.word}. Nghĩa là: ${wordObj.meaning}. Ví dụ: ${wordObj.example}`;
+            const base64 = await textToSpeech(textToRead);
+            if (!base64 || !isPlaylistMode) {
+                setTimeout(() => playNextInPlaylist(index + 1), 500);
+                return;
+            }
+            const decoded = decodePCM(base64);
+            buffer = await decodeAudioData(decoded, audioCtxRef.current, 24000, 1);
+            globalAudioCache[wordObj.word] = buffer;
+        }
+
+        const source = audioCtxRef.current.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioCtxRef.current.destination);
+        playlistSourceRef.current = source;
+        
+        source.onended = () => {
+            if (isPlaylistMode) {
+                setTimeout(() => playNextInPlaylist(index + 1), 800);
+            }
+        };
+        source.start();
+
+        // Tải trước từ tiếp theo nữa khi đang phát từ này
+        if (index + 1 < folderWords.length) {
+            prefetchAudio([folderWords[index + 1]]);
+        }
+
+    } catch (e: any) {
+        console.error("Playlist error", e);
+        if (e.message?.includes("API_QUOTA_EXCEEDED")) {
+            setErrorStatus("API Quota Exceeded. Dừng danh sách phát.");
+            stopPlaylist();
+        } else {
+            if (isPlaylistMode) setTimeout(() => playNextInPlaylist(index + 1), 500);
+        }
+    }
   };
 
   const startTraining = (words: VocabularyWord[]) => {
+    stopPlaylist();
     setTrainingQueue(words);
     setTrainingIndex(0);
     setView('practice');
-    prefetchAudioForWords(words);
   };
 
   const handleWordFinished = (isMastered: boolean) => {
@@ -280,15 +397,22 @@ const VocabularyRoom: React.FC = () => {
 
   const handleAiGenerate = async () => {
     if (!aiInput) return;
-    const folder = { name: aiInput, icon: 'fa-magic', targetCount: 71, known: 0, level: 'Intermediate' };
+    const folder = { name: aiInput, icon: 'fa-magic', targetCount: 70, known: 0, level: 'Intermediate' };
     setFolders([folder, ...folders]);
     setSelectedFolder(folder);
     setView('wordList');
-    await fetchWordsToTarget(aiInput, 'Intermediate', 71);
+    await fetchWordsToTarget(aiInput, 'Intermediate', 70);
   };
 
   return (
-    <div className="max-w-4xl mx-auto h-full flex flex-col bg-[#0f1115] min-h-screen text-white">
+    <div className="max-w-4xl mx-auto h-full flex flex-col bg-[#0f1115] min-h-screen text-white relative">
+      {errorStatus && (
+        <div className="absolute top-0 left-0 right-0 p-4 bg-rose-600/90 backdrop-blur-md text-white text-center font-bold text-sm z-50 flex items-center justify-center gap-4">
+          <span><i className="fas fa-exclamation-triangle mr-2"></i> {errorStatus}</span>
+          <button onClick={() => setErrorStatus(null)} className="bg-white/20 px-3 py-1 rounded-lg text-xs hover:bg-white/30 transition-all">Đóng</button>
+        </div>
+      )}
+
       {view === 'folders' && (
         <div className="flex-1 animate-fadeIn pb-24">
           <header className="p-6 flex items-center justify-between">
@@ -346,27 +470,33 @@ const VocabularyRoom: React.FC = () => {
       {view === 'wordList' && (
         <div className="flex-1 animate-fadeIn pb-24 flex flex-col">
             <header className="p-6 flex items-center gap-4 sticky top-0 bg-[#0f1115] z-10 border-b border-white/5">
-                <button onClick={() => setView('folders')} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+                <button onClick={() => { stopPlaylist(); setView('folders'); }} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
                     <i className="fas fa-arrow-left"></i>
                 </button>
                 <div className="flex-1 text-left">
                     <h2 className="text-xl font-bold">{selectedFolder?.name}</h2>
                     <p className="text-slate-500 text-xs">Thu thập: {folderWords.length} / {selectedFolder?.targetCount} từ vựng</p>
                 </div>
+                <button 
+                  onClick={isPlaylistMode ? stopPlaylist : startPlaylist}
+                  title={isPlaylistMode ? "Dừng phát" : "Phát toàn bộ danh sách"}
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isPlaylistMode ? 'bg-rose-600 text-white shadow-lg' : 'bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600 hover:text-white'}`}
+                >
+                  <i className={`fas ${isPlaylistMode ? 'fa-stop' : 'fa-headphones text-lg'}`}></i>
+                </button>
             </header>
             
             {loading && folderWords.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center py-20">
                     <div className="w-12 h-12 border-4 border-white/10 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
                     <p className="text-slate-400 font-bold">AI đang soạn bộ {selectedFolder?.targetCount} từ...</p>
-                    {errorStatus && <p className="mt-4 text-rose-400 text-sm font-bold animate-pulse">{errorStatus}</p>}
                 </div>
             ) : (
                 <>
                 {loading && (
                     <div className="px-6 py-2 bg-indigo-600/10 border-b border-indigo-500/20 flex items-center justify-between">
                         <span className="text-[10px] font-black text-indigo-400 uppercase">
-                          {errorStatus || `Đang tải thêm từ mới... ${loadingProgress}%`}
+                          Đang tải thêm từ mới... {loadingProgress}%
                         </span>
                         <div className="w-24 h-1 bg-white/10 rounded-full overflow-hidden">
                             <div className="h-full bg-indigo-500" style={{ width: `${loadingProgress}%` }}></div>
@@ -375,16 +505,23 @@ const VocabularyRoom: React.FC = () => {
                 )}
                 <div className="p-6 space-y-3 flex-1 overflow-y-auto">
                     {folderWords.map((w, idx) => (
-                        <div key={idx} className="bg-[#1a1c22] border border-white/5 rounded-2xl p-5 flex items-center justify-between hover:bg-white/5 transition-all group cursor-pointer" onClick={() => startTraining([w])}>
+                        <div 
+                          key={idx} 
+                          className={`bg-[#1a1c22] border rounded-2xl p-5 flex items-center justify-between hover:bg-white/5 transition-all group cursor-pointer ${currentPlaylistIdx === idx ? 'border-indigo-500 bg-indigo-500/10 ring-2 ring-indigo-500/20' : 'border-white/5'}`} 
+                          onClick={() => startTraining([w])}
+                        >
                             <div className="flex-1 text-left">
                                 <div className="flex items-center gap-3 mb-1">
-                                    <h4 className="text-lg font-bold group-hover:text-indigo-400 transition-colors">{w.word}</h4>
+                                    <h4 className={`text-lg font-bold transition-colors ${currentPlaylistIdx === idx ? 'text-indigo-400' : 'group-hover:text-indigo-400'}`}>{w.word}</h4>
                                     <span className="text-xs font-mono text-slate-500">{w.phonetic}</span>
                                 </div>
                                 <p className="text-sm text-slate-400">{w.meaning}</p>
                             </div>
-                            <button onClick={(e) => { e.stopPropagation(); playAudio(w.word); }} className={`w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:text-indigo-400 ${playingWord === w.word ? 'bg-indigo-500/10 text-indigo-400' : ''}`}>
-                                <i className={`fas ${playingWord === w.word ? 'fa-volume-up animate-pulse' : 'fa-volume-up'}`}></i>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); playWordAudio(w); }} 
+                                className={`w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:text-indigo-400 ${(playingWord === w.word || currentPlaylistIdx === idx) ? 'bg-indigo-500/10 text-indigo-400' : ''}`}
+                            >
+                                <i className={`fas ${(playingWord === w.word || currentPlaylistIdx === idx) ? 'fa-volume-up animate-pulse' : 'fa-volume-up'}`}></i>
                             </button>
                         </div>
                     ))}
@@ -410,7 +547,7 @@ const VocabularyRoom: React.FC = () => {
                  <i className="fas fa-times"></i> Dừng học
               </button>
               <div className="text-xs font-black text-indigo-400 uppercase tracking-widest bg-indigo-400/10 px-3 py-1 rounded-full">
-                 Đã thuộc: {masteredCount} / {selectedFolder?.targetCount || 71}
+                 Đã thuộc: {masteredCount} / {selectedFolder?.targetCount || 70}
               </div>
            </header>
 
@@ -423,10 +560,10 @@ const VocabularyRoom: React.FC = () => {
              <div className="mt-auto pt-10">
                 <div className="flex justify-between text-[10px] font-black text-slate-500 mb-3 uppercase tracking-widest">
                     <span>TIẾN ĐỘ CHỦ ĐỀ</span>
-                    <span>{Math.round((masteredCount / (selectedFolder?.targetCount || 71)) * 100)}%</span>
+                    <span>{Math.round((masteredCount / (selectedFolder?.targetCount || 70)) * 100)}%</span>
                 </div>
                 <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${(masteredCount / (selectedFolder?.targetCount || 71)) * 100}%` }}></div>
+                    <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${(masteredCount / (selectedFolder?.targetCount || 70)) * 100}%` }}></div>
                 </div>
              </div>
            </div>
